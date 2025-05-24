@@ -12,7 +12,7 @@ from homeassistant.helpers.event import (
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .constants import INTEGRATION_DOMAIN as DOMAIN
-from .entitits.entity import Entity
+from .entities.entity import Entity
 
 _LOGGER = logging.getLogger(__name__)
 
