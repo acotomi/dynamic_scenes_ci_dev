@@ -1,6 +1,7 @@
 import sys
 import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../custom_components')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../custom_components/dynamic_scenes')))
+from __init__ import SceneConfiguration
 
 import pytest
 from dynamic_scenes import SceneConfiguration
