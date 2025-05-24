@@ -9,7 +9,7 @@ component_path = os.path.join(repo_root, 'custom_components', 'dynamic_scenes')
 sys.path.insert(0, component_path)
 
 # Zdaj lahko uvozimo SceneConfiguration direktno iz __init__.py
-from __init__ import SceneConfiguration
+from dynamic_scenes import SceneConfiguration
 
 @pytest.mark.asyncio
 async def test_load_invalid_yaml(tmp_path):
