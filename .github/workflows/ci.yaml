@@ -24,4 +24,5 @@ jobs:
 
       - name: Run tests
         run: |
-          PYTHONPATH=custom_components pytest tests/
+          PYTHONPATH=${{ github.workspace }}/custom_components pytest tests/
+
