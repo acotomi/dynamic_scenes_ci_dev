@@ -7,7 +7,7 @@ base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../custom_c
 sys.path.insert(0, os.path.join(base_path, 'attributes/types'))
 sys.path.insert(0, os.path.join(base_path, 'attributes'))
 
-from brightness import Brightness
+from attributes.types.brightness import Brightness
 
 def test_brightness_valid_value():
     b = Brightness(time=3600, value=128)
