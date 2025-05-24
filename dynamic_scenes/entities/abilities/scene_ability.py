@@ -49,7 +49,7 @@ class SceneAbility:
         self,
         scenes: set[EntityScene],
         supported_attributes: set[type[Attr]],
-        on_scene_change: Callable[[EntityScene], None],
+        on_scene_change_callback: Callable[[EntityScene], None],
     ) -> None:
         """Initialize the scene ability.
 
@@ -70,7 +70,7 @@ class SceneAbility:
         self._current_scene = self._off_scene
         self._scene_lock = threading.RLock()
 
-        self._on_scene_change = on_scene_change
+        self._on_scene_change = on_scene_change_callback
 
     # ===== Properties =====
 

@@ -7,14 +7,14 @@ import threading
 class TimeshiftAbility:
     """Class that gives entities timeshifting ability."""
 
-    def __init__(self, on_timeshift_change: Callable[[int], None]) -> None:
+    def __init__(self, on_timeshift_change_callback: Callable[[int], None]) -> None:
         """Initialize the timeshift."""
         # Set the timeshift to 0
         self._timeshift: int = 0
         self._timeshift_lock = threading.RLock()
 
         # Set the callback
-        self._on_timeshift_change = on_timeshift_change
+        self._on_timeshift_change = on_timeshift_change_callback
 
     # ===== Properties =====
 

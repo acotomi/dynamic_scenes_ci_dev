@@ -1,6 +1,4 @@
 """Base ENTITIES class."""
-from homeassistant.core import HomeAssistant
-from dynamic_scenes.scenes.entity_scene import EntityScene
 
 class Entity:
     """Base class for all entities that can have dynamic scenes."""

@@ -32,16 +32,16 @@ class Attr(ABC):
         Throws a InputValidationError if the value is not valid.
         """
 
-    def __init__(self, time: int, value: Any = None) -> None:
+    def __init__(self, value: Any = None, time: int | None = None) -> None:
         """Initialize the attribute."""
         # Set or initialize time
-        self._time = time
+        self._time = time if time is not None else 0
         # Set or initialize value
         self._value = value if value is not None else self.DEFAULT_VALUE
 
         try:
             # Validate the time
-            self._validate_time(time)
+            self._validate_time(self._time)
             # Validate the value
             self._validate_value(self._value)
         except InputValidationError as err:

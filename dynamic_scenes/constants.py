@@ -34,7 +34,6 @@ class SCENE:
     OFF = "off"
     CUSTOM = "custom"
 
-DOMAIN = "dynamic_scenes"
 
 # TODO: Kaj so tej?
 # Service attributes

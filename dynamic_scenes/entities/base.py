@@ -9,7 +9,9 @@ from ..attributes.base import Attr  # noqa: TID252
 from ..errors import InputValidationError  # noqa: TID252
 from ..scenes.entity_scene import EntityScene  # noqa: TID252  # noqa: TID252
 from .abilities.scene_ability import SceneAbility
+from .abilities.state_ability import StateAbility
 from .abilities.timeshift_ability import TimeshiftAbility
+from .abilities.update_ablility import UpdateAbility
 from .entity_registry import register_entity
 
 
@@ -18,12 +20,24 @@ class Entity(ABC):
 
     # ===== Initialization and validation =====
 
+    def _validate_entity(self) -> None:
+        """Check if the entity ID is a valid entity in HASS.
+
+        Throws a InputValidationError if the entity ID is not valid.
+        """
+        # Check if the entity ID is a valid entity in HASS
+        if not self._hass.states.get(self._entity_id):
+            raise InputValidationError(f"Entity {self._entity_id} is not a valid entity in HASS.")
+
     def __init__(self, entity_id: str, scene: set[EntityScene], hass: HomeAssistant) -> None:
-        """Initialize the entity."""
-        self._entity_id = entity_id
+        """Initialize the entity.
+
+        Throws InputValidationError if entity / the scene is not valid for this entity.
+        """
         self._hass = hass
 
-        self._validate_entity()
+        self._entity_id = entity_id
+        self._validate_entity() # Throws InputValidationError if the entity ID is not valid
 
         # Set up the abilities
         try:
@@ -34,6 +48,17 @@ class Entity(ABC):
             )
             self._timeshift_ability = TimeshiftAbility(
                 self.__on_timeshift_change,
+            )
+            self._state_ability = StateAbility(
+                hass,
+                entity_id,
+                self.__convert_state,
+                self.__on_external_state_change,
+            )
+            self._update_ability = UpdateAbility(
+                self._entity_id,
+                self._state_ability.with_internal_state_change,
+                self.__update_entity,
             )
         except InputValidationError as err:
             raise InputValidationError(
@@ -77,20 +102,6 @@ class Entity(ABC):
 
         This method is used to check if the entity class can handle the entity.
         """
-
-    # ===== HASS state methods =====
-
-    @abstractmethod
-    def _get_curreny_state(self) -> dict[str, Attr]:
-        """Get the full state out of Home Assistant.
-
-        This method is called by the _ha_state property, to extract the relevant attributes.
-        """
-
-    # ===== Hass state Helpers =====
-    @staticmethod
-    def _convert_state(self, ha_state: dict[str, Any], extract_attrs: set[type[Attr]]) -> dict[str, Attr]:
-        """Con"""
 
     # ===== Fasade properties =====
 
@@ -140,6 +151,13 @@ class Entity(ABC):
         """
         self._timeshift_ability.shift(shift)
 
+    # Update ability
+    def update_entity(self) -> None:
+        """Trigger an update of the entity manually.
+
+        This method is used to make the entity update periodically.
+        """
+
     # ===== Fasade Helpers =====
 
     # Scene ability
@@ -149,3 +167,38 @@ class Entity(ABC):
     # Timeshift ability
     def __on_timeshift_change(self, timeshift: int) -> None:
         """Called when the timeshift changes."""  # noqa: D401
+
+    # State ability
+    def __convert_state(self, ha_state: dict[str, Any]) -> dict[str, Attr]:
+        """Convert full Home Assistant state to a dict of Attrs important to this entity.
+
+        This method is used to convert HA state to the internal state representation.
+        Subclasses should ovreride this if they have a specific way of converting the state
+        aka. rgbww lights that have color mode and temp mode...
+        """
+        state: dict[str, Attr] = {}
+
+        for attr_type in self.SUPPORTED_ATTRIBUTES:
+            # Check if the attribute type is in the HA state
+            if attr_type not in ha_state:
+                raise InputValidationError(
+                    f"Entity {self._entity_id} does not have attribute {attr_type} in its state."
+                )
+            # Convert the HA state to the Attr type
+            state[attr_type.YAML_NAME] = attr_type(value=ha_state[attr_type.HASS_NAME])
+
+        return state
+
+    def __on_external_state_change(self, state: dict[str, Attr]) -> None:
+        """When the external state changes.
+
+        This method is used to put the entity into custom scene.
+        """
+
+    # Update abiliry
+    @abstractmethod
+    def __update_entity(self, state: dict[str, Attr]) -> None:
+        """Update the entity with the given state.
+
+        This method should call the appropreate Home Assistant service to update the entity state.
+        """
