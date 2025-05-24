@@ -1,13 +1,15 @@
-import pytest
 import sys
 import os
+import pytest
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../custom_components')))
+# Dodamo root mape v sys.path
+base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../custom_components/dynamic_scenes'))
+sys.path.insert(0, os.path.join(base_path, 'attributes/types'))
+sys.path.insert(0, os.path.join(base_path, 'attributes'))
 
-from dynamic_scenes.attributes.types.brightness import Brightness
+from brightness import Brightness
 
 def test_brightness_valid_value():
-    
     b = Brightness(time=3600, value=128)
     assert b.value == 128
     assert b.time == 3600
