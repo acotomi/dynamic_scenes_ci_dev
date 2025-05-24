@@ -1,6 +1,10 @@
+import os
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../custom_components')))
 import pytest
 from custom_components.dynamic_scenes.__init__ import SceneConfiguration
 from unittest.mock import AsyncMock
+
 
 @pytest.mark.asyncio
 async def test_load_invalid_yaml(tmp_path):
