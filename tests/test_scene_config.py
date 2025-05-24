@@ -1,22 +1,17 @@
-import sys
-import os
 import pytest
-from unittest.mock import AsyncMock
+from dynamic_scenes.attributes.types.brightness import Brightness
 
-# Dodamo custom_components v sys.path
-repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-custom_components_path = os.path.join(repo_root, 'custom_components')
-sys.path.insert(0, custom_components_path)
+def test_brightness_valid_value():
+    b = Brightness(time=3600, value=128)
+    assert b.value == 128
+    assert b.time == 3600
 
-from dynamic_scenes import SceneConfiguration
-@pytest.mark.skip(reason="Disabled temporarily during refactor")
-@pytest.mark.asyncio
-async def test_load_invalid_yaml(tmp_path):
-    bad_yaml = tmp_path / "scenes.yaml"
-    bad_yaml.write_text("::not valid yaml::")
+def test_brightness_invalid_value():
+    with pytest.raises(ValueError):
+        Brightness(time=0, value=300)
 
-    hass = AsyncMock()
-    config = SceneConfiguration(hass)
-
-    with pytest.raises(Exception):
-        await config.load(file_path=bad_yaml)
+def test_brightness_interpolation():
+    b1 = Brightness(time=0, value=50)
+    b2 = Brightness(time=3600, value=150)
+    interpolated = b1.interpolate(b2, 1800)
+    assert interpolated.value == 100
