@@ -1,11 +1,15 @@
 import sys
 import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../custom_components/dynamic_scenes')))
-from __init__ import SceneConfiguration
-
 import pytest
-from dynamic_scenes import SceneConfiguration
 from unittest.mock import AsyncMock
+
+# Dodamo celotno pot do dinamičnega scenes modula v sys.path
+repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+component_path = os.path.join(repo_root, 'custom_components', 'dynamic_scenes')
+sys.path.insert(0, component_path)
+
+# Zdaj lahko uvozimo SceneConfiguration direktno iz __init__.py
+from __init__ import SceneConfiguration
 
 @pytest.mark.asyncio
 async def test_load_invalid_yaml(tmp_path):
