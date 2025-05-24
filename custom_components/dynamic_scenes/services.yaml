@@ -1,0 +1,47 @@
+# Example services.yaml
+set_scene_condition_met:
+  description: Tells the integration that the conditions for a scene to be active are met.
+  fields:
+    entity_id:
+      description: The entities to apply this scene to.
+      example: "light.living_room"
+    scene:
+      description: The scene name.
+      example: "daylight"
+
+unset_scene_condition_met:
+  description: Tells the integration that the conditions for a scene to be active are no longer met.
+  fields:
+    entity_id:
+      description: The entities to apply this to.
+      example: "light.living_room"
+    scene:
+      description: The scene name.
+      example: "daylight"
+
+reset_custom_scene:
+  description: Resets the scene from custom to the currently active scene.
+  fields:
+    entity_id:
+      description: The entities to reset.
+      example: "light.living_room"
+
+set_timeshift:
+  description: Set the timeshift of entities.
+  fields:
+    entity_id:
+      description: The entities to modify.
+      example: "light.living_room"
+    timeshift:
+      description: The timeshift in seconds.
+      example: 60
+
+shift_time:
+  description: Shift the timeshift of entities.
+  fields:
+    entity_id:
+      description: The entities to modify.
+      example: "light.living_room"
+    timeshift:
+      description: The timeshift to add in seconds.
+      example: 60
