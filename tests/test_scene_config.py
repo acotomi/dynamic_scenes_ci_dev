@@ -1,14 +1,13 @@
-import os
 import sys
+import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../custom_components')))
-import pytest
-from custom_components.dynamic_scenes.__init__ import SceneConfiguration
-from unittest.mock import AsyncMock
 
+import pytest
+from dynamic_scenes import SceneConfiguration
+from unittest.mock import AsyncMock
 
 @pytest.mark.asyncio
 async def test_load_invalid_yaml(tmp_path):
-    # ustvari začasno neveljavno YAML datoteko
     bad_yaml = tmp_path / "scenes.yaml"
     bad_yaml.write_text("::not valid yaml::")
 
