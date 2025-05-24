@@ -8,6 +8,7 @@ _attr_registry: dict[str, type[Attr]] = {}
 
 def register_attr(cls: type[Attr]) -> None:
     """Register an attribute class."""
+    from .base import Attr
     _attr_registry[cls.YAML_NAME] = cls
 
 def _get_attr_class(yaml_name: str) -> type[Attr]:
