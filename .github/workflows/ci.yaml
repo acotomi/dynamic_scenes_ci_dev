@@ -23,6 +23,8 @@ jobs:
           pip install pytest homeassistant
 
       - name: Run tests
+        working-directory: ${{ github.workspace }}/dynamic_scenes_ci_dev
         run: |
-          PYTHONPATH=${{ github.workspace }}/custom_components pytest tests/
+          PYTHONPATH=custom_components pytest tests/
+
 
