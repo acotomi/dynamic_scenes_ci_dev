@@ -24,3 +24,4 @@ def test_interpolation_end():
     b1 = Brightness(time=0, value=50)
     result = b1._interpolate_value(next_val=150, ratio=1.0)
     assert result == 150
+
