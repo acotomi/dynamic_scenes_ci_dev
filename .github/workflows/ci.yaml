@@ -22,3 +22,5 @@ jobs:
       - name: Run tests
         run: |
           pytest --durations=10 --maxfail=5
+        env:
+          PYTHONPATH: ${{ github.workspace }}/config/custom_components
