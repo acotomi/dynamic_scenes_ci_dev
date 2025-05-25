@@ -1,6 +1,11 @@
 import pytest
+from dynamic_scenes.entity_scenes.entity_scenes import AttrScene
 from dynamic_scenes.attributes.types.brightness import Brightness
-from dynamic_scenes.entity_scenes import AttrScene
+import sys
+from unittest.mock import MagicMock
+
+sys.modules['homeassistant.core'] = MagicMock()
+
 
 
 def test_attr_scene_interpolation_halfway():
