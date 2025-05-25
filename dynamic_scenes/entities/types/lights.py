@@ -1,78 +1,100 @@
-# Specific entity type implementations
+"""Light entity types."""
+
+import asyncio
+import logging
+from typing import TYPE_CHECKING, Any
+
+from ...attributes.types import Brightness, ColorTemp, LightState  # noqa: TID252
+from ...constants import SERVICECALLS  # noqa: TID252
+from .. import Entity  # noqa: TID252
+
+if TYPE_CHECKING:
+    from attributes import Attr
+
+_LOGGER = logging.getLogger(__name__)
 
 
-class LightEntity(Entity):
-    """Base class for light entities."""
+class Light(Entity):
+    """A light entity."""
 
-    _SUPPORTED_ATTRIBUTES = [ATTR_BRIGHTNESS]
+    SUPPORTED_ATTRIBUTES = {Brightness, LightState}
 
-    async def update(self, time: None | int = None) -> None:
-        """Apply the calculated state to the light entity."""
+    DOMAIN = "light"
 
-        state = self._get_wanted_state(time)
+    @classmethod
+    def supports(cls, domain: str, attributes: dict[str, Any]) -> bool:
+        """Check if the entity is a light without color / color temperature."""
+        _LOGGER.debug("Checking if domain %s, attributes %s is light entity.", domain, attributes)
 
-        state = {attr.hass_name: attr.value for attr in state.values()}
+        if domain != cls.DOMAIN:
+            _LOGGER.debug("Is not, domain missmatch (%s != %s).", domain, cls.DOMAIN)
+            return False
 
-        try:
-            self._set_last_state(state)
-            await self._hass.services.async_call(
-                domain="light",
-                service="turn_on",
-                service_data={"entity_id": self._entity_id, **state},
+        if "brightness" not in attributes:
+            _LOGGER.debug("Is not, missing brightness attribute.")
+            return False
+
+        if attributes.get("supported_color_modes"): # IS NOT empty or None
+            _LOGGER.debug("Is not, supports_color_modes.")
+            return False
+
+        _LOGGER.debug("Is a light entity.")
+        return True
+
+    async def _set_entity_state(self, state: dict[type['Attr'], 'Attr']) -> None:
+        """Call the light.turn_on or light.turn_off service."""
+        if (state.get(LightState) is None or state[LightState] == "on"):
+            # If state is None or "on", turn on the light
+            kwargs = {
+                attr_type.HASS_NAME: attr.value for attr_type, attr in state.items()
+                if attr_type != LightState
+            }
+            _LOGGER.debug("Turning on light %s with attributes: %s", self.entity_id, kwargs)
+            #kwargs[SERVICECALLS.ENTITY_ID] = self.entity_id
+            # TODO: TEMPORARY FIX: Template lights only change one attribute at a time.
+            for kwarg, data in kwargs.items():
+                await asyncio.sleep(0.1)  # Avoid flooding the service call
+                await self._hass.services.async_call(
+                    self.DOMAIN, "turn_on",
+                    {SERVICECALLS.ENTITY_ID: self.entity_id, kwarg: data}
+                )
+        else:
+            # If state is "off", turn off the light
+            _LOGGER.debug("Turning off light %s", self.entity_id)
+            await self._hass.services.async_call(self.DOMAIN, "turn_off",
+                                     {SERVICECALLS.ENTITY_ID: self.entity_id}
             )
-        except Exception as e:
-            _LOGGER.error(
-                "Failed to apply state to light entity '%s': %s", self._entity_id, e
-            )
+            # TODO: Add transition!
 
+class WWLight(Light):
+    """A light that supports color temperature."""
 
-class WWLightEntity(LightEntity):
-    """Light entity that supports color temperature."""
+    SUPPORTED_ATTRIBUTES = {Brightness, LightState, ColorTemp}
 
-    _SUPPORTED_ATTRIBUTES = [ATTR_BRIGHTNESS, ATTR_COLOR_TEMP_KELVIN]
+    DOMAIN = "light"
 
-    # update() is inherited from LightEntity
+    @classmethod
+    def supports(cls, domain: str, attributes: dict[str, Any]) -> bool:
+        """Check if the entity is a color temperature light."""
+        _LOGGER.debug("Checking if domain %s, attributes %s is "
+                      "color temperature light entity.", domain, attributes)
 
+        if domain != cls.DOMAIN:
+            _LOGGER.debug("Is not, domain missmatch (%s != %s).", domain, cls.DOMAIN)
+            return False
 
-def entity_factory(
-    hass: HomeAssistant, entity_id: str, scenes: list[EntityScene]
-) -> Entity:
-    """Create an appropriate entity instance based on the entity type and capabilities.
+        if "brightness" not in attributes:
+            _LOGGER.debug("Is not, missing brightness attribute.")
+            return False
 
-    Args:
-        hass: Home Assistant instance
-        entity_id: Entity ID to create an instance for
-        scenes: List of scenes available for this entity
+        if "color_temp" not in attributes:
+            _LOGGER.debug("Is not, missing color_temp attribute.")
+            return False
 
-    Returns:
-        Entity instance appropriate for the entity type
+        supported_color_modes = attributes.get("supported_color_modes", [])
+        if not supported_color_modes or "color_temp" not in supported_color_modes: # Hasnt got / ..
+            _LOGGER.debug("Is not, missing color_temp in supported_color_modes.")
+            return False
 
-    Raises:
-        ValueError: If the entity type is not supported
-
-    """
-    # Get the entity state from Home Assistant
-    _LOGGER.debug("Creating entity for %s", entity_id)
-    state = hass.states.get(entity_id)
-    if not state:
-        _LOGGER.error("Entity '%s' not found in Home Assistant", entity_id)
-        raise ValueError(f"Entity {entity_id} not found")
-
-    domain = entity_id.split(".")[0]
-
-    # Light entities
-    if domain == DOMAIN_LIGHT:
-        # Check supported features
-        supported_color_modes = state.attributes.get("supported_color_modes", [])
-
-        # White light with color temperature
-        if LIGHT_COLOR_MODE_COLOR_TEMP in supported_color_modes:
-            return WWLightEntity(hass, entity_id, scenes)
-
-        # Basic light
-        return LightEntity(hass, entity_id, scenes)
-
-    # Add other domains here
-
-    # Unsupported domain
-    raise ValueError(f"Unsupported entity domain: {domain}")
+        _LOGGER.debug("Is a color temperature light entity.")
+        return True

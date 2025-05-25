@@ -1,7 +1,10 @@
 """Ability to shift the time of a scene."""
 
 from collections.abc import Callable
+import logging
 import threading
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class TimeshiftAbility:
@@ -31,13 +34,16 @@ class TimeshiftAbility:
         with self._timeshift_lock:
             self._timeshift = self._correct_for_12h(timeshift)
             self._on_timeshift_change(self._timeshift)
+        _LOGGER.debug("Timeshift set to: %s", self._timeshift)
 
     def shift(self, shift: int) -> None:
         """Adjust the timeshift by a relative amount in seconds."""
         # Make sure the timeshift is in the range -12h to +12h
+        _LOGGER.debug("Old timeshift: %s", self._timeshift)
         with self._timeshift_lock:
             self._timeshift = self._correct_for_12h(self._timeshift + shift)
             self._on_timeshift_change(self._timeshift)
+        _LOGGER.debug("New timeshift: %s", self._timeshift)
 
     # ===== Helpers =====
 

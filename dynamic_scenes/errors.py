@@ -7,4 +7,3 @@ class InputValidationError(ValueError):
 
 class SceneNameError(ValueError):
     """Exception raised when a scene name is not found."""
-

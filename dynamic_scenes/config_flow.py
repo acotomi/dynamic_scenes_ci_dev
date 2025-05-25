@@ -1,35 +1,32 @@
 """Config flow for Dynamic Scenes integration."""
 
 import logging
+from typing import Any
 
 import voluptuous as vol
 
 from homeassistant import config_entries
 
-from .constants import (
-    DOMAIN,
-    DATA_RERUN_INTERVAL,
-)
+from .constants import ENTRYDATA, INTEGRATION_DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-# Step 1: Define your schema
+
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
-        vol.Required(DATA_RERUN_INTERVAL): vol.All(
+        vol.Required(ENTRYDATA.UPDATE_INTERVAL): vol.All(
             vol.Coerce(int), vol.Range(min=1, max=3600)
         )
     }
 )
 
-
-class DynamicScenesConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class DynamicScenesConfigFlow(config_entries.ConfigFlow, domain=INTEGRATION_DOMAIN):
     """Handle a config flow for Dynamic Scenes."""
 
     VERSION = 1
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_PUSH
 
-    async def async_step_user(self, user_input=None):
+    async def async_step_user(self, user_input: dict[str, Any] | None = None):
         """Handle the first step of configuration."""
         if user_input is not None: # When the user submits the form:
             _LOGGER.debug("Config flow user input: %s", user_input)

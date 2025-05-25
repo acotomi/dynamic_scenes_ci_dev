@@ -5,20 +5,20 @@ daylight:
     "03:15":  # Time in 24-hour format
       - entities:
           - light.kitchen
-        brightness: 5 # 0-255 brightness level for light in color_temp_kelvin mode
-        color_temp_kelvin: 6000 # 153-500 color temperature in mireds
+        brightness: 5 # 0-255 brightness level for light in color_temp mode
+        color_temp: 250 # 153-500 color temperature in mireds
       - entities:
           - light.living_room
         brightness: 50
-        color_temp_kelvin: 4000
+        color_temp: 350
 
     "03:45":
       - entities:
           - light.kitchen
           - light.living_room
-        # When transitioning from color_temp_kelvin to xy_color, you must specify all 4 parameters
+        # When transitioning from color_temp to xy_color, you must specify all 4 parameters
         brightness: 200
-        color_temp_kelvin: 2000
+        color_temp: 454
 
 daylight_occupied:
   priority: 2
@@ -27,14 +27,14 @@ daylight_occupied:
       - entities:
           - light.kitchen
         brightness: 50
-        color_temp_kelvin: 6000
+        color_temp: 454
       - entities:
           - light.living_room
         brightness: 100
-        color_temp_kelvin: 4000
+        color_temp: 350
     "03:45":
       - entities:
           - light.kitchen
           - light.living_room
         brightness: 255
-        color_temp_kelvin: 2000
+        color_temp: 250

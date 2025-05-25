@@ -1,13 +1,16 @@
 """Base ATRIBUTES class."""
 
 from abc import ABC, abstractmethod
+import logging
 from typing import Any, TypeVar, cast
 
 from ..errors import InputValidationError  # noqa: TID252
-from .attribute_registry import register_attr
+from .attribute_factory import register_attr
+
+_LOGGER = logging.getLogger(__name__)
+
 
 T = TypeVar("T", bound="Attr")
-
 
 class Attr(ABC):
     """Base (abstract) class for all attributes."""
@@ -24,9 +27,9 @@ class Attr(ABC):
         if time < 0 or time >= 24 * 3600:
             raise InputValidationError(f"Time {time} is not in range 0-23.59.59h.")
 
+    @classmethod
     @abstractmethod
-    @staticmethod
-    def _validate_value(value: Any) -> None:
+    def _validate_value(cls, value: Any) -> None:
         """Validate the value of this attribute.
 
         Throws a InputValidationError if the value is not valid.
@@ -57,17 +60,19 @@ class Attr(ABC):
 
         Raises NotImplementedError if the constants are not defined.
         """
+        super().__init_subclass__()
         # Check if the constants are defined
         if not all(
             hasattr(cls, attr)
             for attr in ["YAML_NAME", "HASS_NAME", "OFF_VALUE", "DEFAULT_VALUE"]
         ):
-            raise NotImplementedError(f"Missing one of the required constants in {cls.__name__}")
+            raise NotImplementedError(
+                f"Missing one of the required constants in {cls.__name__}"
+            )
 
         # Register the class in the registry
+        _LOGGER.debug("Registering attribute class %s", cls.__name__)
         register_attr(cls)
-
-        return super().__init_subclass__()
 
     # ===== Properties =====
 
@@ -132,7 +137,7 @@ class Attr(ABC):
         new_value = self._interpolate_value(next_attr.value, ratio)
 
         # Create a new attribute with the new time and value
-        return cast(T, type(self)(new_time, new_value))
+        return cast(T, type(self)(value=new_value, time=new_time))
 
     @abstractmethod
     def _interpolate_value(self, next_val: Any, ratio: float) -> Any:

@@ -1,6 +1,6 @@
 """Brightness attribute for any light entity."""
 
-from ..base import Attr  # noqa: TID252
+from .. import Attr  # noqa: TID252
 
 
 class Brightness(Attr):
@@ -11,8 +11,8 @@ class Brightness(Attr):
     OFF_VALUE: int = 0
     DEFAULT_VALUE: int = OFF_VALUE
 
-    @staticmethod
-    def _validate_value(value: int) -> None:
+    @classmethod
+    def _validate_value(cls, value: int) -> None:
         if not 0 <= value <= 255:
             raise ValueError(f"Invalid brightness value: {value}")
 

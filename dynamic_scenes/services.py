@@ -1,54 +1,53 @@
+"""API setup for the services of the Dynamic Scenes integration."""
+
 import logging
 
-from homeassistant.core import HomeAssistant, ServiceCall
 import voluptuous as vol
+
+from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import config_validation as cv
 
-from .coordinator import Coordinator
-
-from .constants import (
-    DOMAIN,
-    ATTR_ENTITY_ID,
-    ATTR_SCENE,
-    ATTR_TIMESHIFT,
-    SERVICE_SET_SCENE_CONDITION_MET,
-    SERVICE_UNSET_SCENE_CONDITION_MET,
-    SERVICE_RESET_CUSTOM_SCENE,
-    SERVICE_SET_TIMESHIFT,
-    SERVICE_SHIFT_TIME,
-)
+from .constants import INTEGRATION_DOMAIN, SERVICEDATA, SERVICENAME
+from .coordinator import ServiceCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
 # Schema definitions for service validation
 SCENE_CONDITION_SCHEMA = vol.Schema(
     {
-        vol.Required(ATTR_ENTITY_ID): cv.entity_ids,
-        vol.Required(ATTR_SCENE): cv.string,
+        vol.Required(SERVICEDATA.ENTITY_ID): cv.entity_ids,  # type: ignore[]
+        vol.Required(SERVICEDATA.SCENE): cv.string,
     }
 )
 
 RESET_CUSTOM_SCENE_SCHEMA = vol.Schema(
     {
-        vol.Required(ATTR_ENTITY_ID): cv.entity_ids,
+        vol.Required(SERVICEDATA.ENTITY_ID): cv.entity_ids,  # type: ignore[]
     }
 )
 
-TIMESHIFT_SCHEMA = vol.Schema(
+ADJUSTMENTS_SCHEMA = vol.Schema(
     {
-        vol.Required(ATTR_ENTITY_ID): cv.entity_ids,
-        vol.Required(ATTR_TIMESHIFT): cv.positive_int,
+        vol.Required(SERVICEDATA.ENTITY_ID): cv.entity_ids,  # type: ignore[]
     }
 )
 
-RESET_TIMESHIFT_SCHEMA = vol.Schema(
+SET_TIMESHIFT_SCHEMA = vol.Schema(
     {
-        vol.Required(ATTR_ENTITY_ID): cv.entity_ids,
+        vol.Required(SERVICEDATA.ENTITY_ID): cv.entity_ids,  # type: ignore[]
+        vol.Required(SERVICEDATA.TIMESHIFT): cv.positive_int,
+    }
+)
+
+SHIFT_TIMESHIFT_SCHEMA = vol.Schema(
+    {
+        vol.Required(SERVICEDATA.ENTITY_ID): cv.entity_ids,  # type: ignore[]
+        vol.Required(SERVICEDATA.SHIFT): cv.positive_int,
     }
 )
 
 
-async def async_register_services(hass: HomeAssistant, coordinator: Coordinator):
+async def async_register_services(hass: HomeAssistant, sc: ServiceCoordinator):
     """Register services for the integration.
 
     Returns: The function to unregister the services.
@@ -60,74 +59,112 @@ async def async_register_services(hass: HomeAssistant, coordinator: Coordinator)
 
     async def handle_set_scene_condition_met(call: ServiceCall) -> None:
         """Tells the integration that the conditions for some scene are met."""
-        entity_ids = call.data.get(ATTR_ENTITY_ID)
-        scene = call.data.get(ATTR_SCENE)
-        await coordinator.set_scene_condition_met(entity_ids, scene)
+        entity_ids: list[str] = call.data.get(SERVICEDATA.ENTITY_ID)  # type: ignore[]
+        scene: str = call.data.get(SERVICEDATA.SCENE)  # type: ignore[]
+        sc.set_scene_active(entity_ids, scene)
 
     async def handle_unset_scene_condition_met(call: ServiceCall):
         """Tells the integration that the conditions for some scene are not met anymore."""
-        entity_ids = call.data.get(ATTR_ENTITY_ID)
-        scene = call.data.get(ATTR_SCENE)
-        await coordinator.unset_scene_condition_met(entity_ids, scene)
+        entity_ids: list[str] = call.data.get(SERVICEDATA.ENTITY_ID)  # type: ignore[]
+        scene: str = call.data.get(SERVICEDATA.SCENE)  # type: ignore[]
+        sc.set_scene_inactive(entity_ids, scene)
 
-    async def handle_reset_custom_scene(call: ServiceCall):
+    # ===== Custom Scenes =====
+
+    async def handle_stop_adjustments(call: ServiceCall):
         """Reset the scene from custom to the currently active scene."""
-        entity_ids = call.data.get(ATTR_ENTITY_ID)
-        await coordinator.reset_custom_scene(entity_ids)
+        entity_ids: list[str] = call.data.get(SERVICEDATA.ENTITY_ID)  # type: ignore[]
+        sc.set_custom_active(entity_ids)
+
+    async def handle_continue_adjustments(call: ServiceCall):
+        """Reset the scene from custom to the currently active scene."""
+        entity_ids: list[str] = call.data.get(SERVICEDATA.ENTITY_ID)  # type: ignore[]
+        sc.set_custom_inactive(entity_ids)
 
     # ===== Timeshifts =====
 
     async def handle_set_timeshift(call: ServiceCall):
         """Set the timeshift of entities."""
-        entity_ids = call.data.get(ATTR_ENTITY_ID)
-        timeshift = call.data.get(ATTR_TIMESHIFT)
-        await coordinator.set_timeshift(entity_ids, timeshift)
+        entity_ids: list[str] = call.data.get(SERVICEDATA.ENTITY_ID)  # type: ignore[]
+        timeshift: int = call.data.get(SERVICEDATA.TIMESHIFT)  # type: ignore[]
+        sc.set_timeshift(entity_ids, timeshift)
 
     async def handle_shift_time(call: ServiceCall):
         """Shift the timeshift of entities."""
-        entity_ids = call.data.get(ATTR_ENTITY_ID)
-        timeshift = call.data.get(ATTR_TIMESHIFT)
-        await coordinator.shift_time(entity_ids, timeshift)
+        entity_ids: list[str] = call.data.get(SERVICEDATA.ENTITY_ID)  # type: ignore[]
+        shift: int = call.data.get(SERVICEDATA.SHIFT)  # type: ignore[]
+        sc.shift_timeshift(entity_ids, shift)
 
     # ===== Register the services =====
 
     hass.services.async_register(
-        DOMAIN,
-        SERVICE_SET_SCENE_CONDITION_MET,
+        INTEGRATION_DOMAIN,
+        SERVICENAME.SET_SCENE_CONDITION_MET,
         handle_set_scene_condition_met,
         schema=SCENE_CONDITION_SCHEMA,
     )
 
     hass.services.async_register(
-        DOMAIN,
-        SERVICE_UNSET_SCENE_CONDITION_MET,
+        INTEGRATION_DOMAIN,
+        SERVICENAME.UNSET_SCENE_CONDITION_MET,
         handle_unset_scene_condition_met,
         schema=SCENE_CONDITION_SCHEMA,
     )
 
     hass.services.async_register(
-        DOMAIN,
-        SERVICE_RESET_CUSTOM_SCENE,
-        handle_reset_custom_scene,
-        schema=RESET_CUSTOM_SCENE_SCHEMA,
+        INTEGRATION_DOMAIN,
+        SERVICENAME.CONTINUE_ADJUSTMENTS,
+        handle_continue_adjustments,
+        schema=ADJUSTMENTS_SCHEMA,
     )
 
     hass.services.async_register(
-        DOMAIN, SERVICE_SET_TIMESHIFT, handle_set_timeshift, schema=TIMESHIFT_SCHEMA
+        INTEGRATION_DOMAIN,
+        SERVICENAME.STOP_ADJUSTMENTS,
+        handle_stop_adjustments,
+        schema=ADJUSTMENTS_SCHEMA,
     )
 
     hass.services.async_register(
-        DOMAIN, SERVICE_SHIFT_TIME, handle_shift_time, schema=TIMESHIFT_SCHEMA
+        INTEGRATION_DOMAIN,
+        SERVICENAME.SET_TIMESHIFT,
+        handle_set_timeshift,
+        schema=SET_TIMESHIFT_SCHEMA,
+    )
+
+    hass.services.async_register(
+        INTEGRATION_DOMAIN,
+        SERVICENAME.SHIFT_TIME,
+        handle_shift_time,
+        schema=SHIFT_TIMESHIFT_SCHEMA,
     )
 
     # Return an unregister function
     return lambda: unregister_services(hass)
 
 
-def unregister_services(hass: HomeAssistant):
+async def unregister_services(hass: HomeAssistant):
     """Unregister services."""
-    hass.services.async_remove(DOMAIN, SERVICE_SET_SCENE_CONDITION_MET)
-    hass.services.async_remove(DOMAIN, SERVICE_UNSET_SCENE_CONDITION_MET)
-    hass.services.async_remove(DOMAIN, SERVICE_RESET_CUSTOM_SCENE)
-    hass.services.async_remove(DOMAIN, SERVICE_SET_TIMESHIFT)
-    hass.services.async_remove(DOMAIN, SERVICE_SHIFT_TIME)
+    hass.services.async_remove(
+        INTEGRATION_DOMAIN, SERVICENAME.SET_SCENE_CONDITION_MET
+    )
+
+    hass.services.async_remove(
+        INTEGRATION_DOMAIN, SERVICENAME.UNSET_SCENE_CONDITION_MET
+    )
+
+    hass.services.async_remove(
+        INTEGRATION_DOMAIN, SERVICENAME.STOP_ADJUSTMENTS
+    )
+
+    hass.services.async_remove(
+        INTEGRATION_DOMAIN, SERVICENAME.CONTINUE_ADJUSTMENTS
+    )
+
+    hass.services.async_remove(
+        INTEGRATION_DOMAIN, SERVICENAME.SET_TIMESHIFT
+    )
+
+    hass.services.async_remove(
+        INTEGRATION_DOMAIN, SERVICENAME.SHIFT_TIME
+    )

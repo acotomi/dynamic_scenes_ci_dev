@@ -19,11 +19,18 @@ unset_scene_condition_met:
       description: The scene name.
       example: "daylight"
 
-reset_custom_scene:
-  description: Resets the scene from custom to the currently active scene.
+stop_adjustments:
+  description: Stops the automatic adjustments for the specified entities.
   fields:
     entity_id:
-      description: The entities to reset.
+      description: The entities to stop adjustments for.
+      example: "light.living_room"
+
+continue_adjustments:
+  description: Continues the automatic adjustments for the specified entities.
+  fields:
+    entity_id:
+      description: The entities to continue adjustments for.
       example: "light.living_room"
 
 set_timeshift:
@@ -36,7 +43,7 @@ set_timeshift:
       description: The timeshift in seconds.
       example: 60
 
-shift_time:
+shift_timeshift:
   description: Shift the timeshift of entities.
   fields:
     entity_id:

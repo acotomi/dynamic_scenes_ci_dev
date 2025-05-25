@@ -1,13 +1,15 @@
 """Ability to set a scene."""
 
 from collections.abc import Callable
+import logging
 import threading
 
-from ...attributes.base import Attr  # noqa: TID252
+from ...attributes import Attr  # noqa: TID252
 from ...constants import MAX_PRIORITY, SCENE  # noqa: TID252
+from ...entity_scenes import AttrScene, EntityScene  # noqa: TID252
 from ...errors import InputValidationError, SceneNameError  # noqa: TID252
-from ...scenes.attribute_scene import AttrScene  # noqa: TID252
-from ...scenes.entity_scene import EntityScene  # noqa: TID252
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class SceneAbility:
@@ -40,7 +42,7 @@ class SceneAbility:
         for attr in supported_attributes:
             # Create a off attribute and put in AttrScene
             if attr.OFF_VALUE is not None:
-                off_attr = attr(0, attr.OFF_VALUE)
+                off_attr = attr(attr.OFF_VALUE, 0)
                 off_attrs.add(AttrScene([off_attr]))
 
         return EntityScene(SCENE.OFF, 0, off_attrs)
@@ -55,6 +57,9 @@ class SceneAbility:
 
         Raises InputValidationError if the scene is not valid for this entity.
         """
+        # Local variables
+        self._on_scene_change = on_scene_change_callback
+
         # Create off scene and custom scene (built in)
         self._off_scene = self._create_off_scene(supported_attributes)
         self._custom_scene: EntityScene | None = None  # Custom scene is not set yet
@@ -66,11 +71,11 @@ class SceneAbility:
         )  # Raises InputValidationError
 
         # Scene stuff variables
-        self._active_scenes: set[EntityScene] = {self._off_scene}  # Always active
+        self._active_scenes: dict[str, EntityScene] = {
+            self._off_scene.name: self._off_scene
+        }  # Always active
         self._current_scene = self._off_scene
         self._scene_lock = threading.RLock()
-
-        self._on_scene_change = on_scene_change_callback
 
     # ===== Properties =====
 
@@ -103,15 +108,27 @@ class SceneAbility:
         scene = self._scenes[scene_name]
 
         # Check if scene is already active
-        if scene in self._active_scenes:
+        if scene.name in self._active_scenes:
+            _LOGGER.debug(
+                "Scene '%s' is already active for entity, nothing to do.",
+                scene_name,
+            )
             return
 
         # Set scene active, and update entity if it is the highest priority
         with self._scene_lock:
-            self._active_scenes.add(scene)
+            self._active_scenes[scene.name] = scene
             if scene.priority > self._current_scene.priority:
+                _LOGGER.debug(
+                    "Scene '%s' has higher priority than current scene '%s', "
+                    "setting it as current scene.",
+                    scene_name,
+                    self._current_scene.name,
+                )
+
                 # Set as current scene
                 self._current_scene = scene
+
                 # Call on scene change method
                 self._on_scene_change(scene)
 
@@ -137,45 +154,76 @@ class SceneAbility:
 
         # Check if scene is active
         if scene not in self._active_scenes:
+            _LOGGER.debug(
+                "Scene '%s' is not active for entity, nothing to do.", scene_name
+            )
             return
 
         # Set scene inactive, and update entity if it is the current scene
         with self._scene_lock:
-            self._active_scenes.remove(scene)
+            self._active_scenes.pop(scene.name)
             if scene == self._current_scene:
+                new_scene = self._get_highest_priority_scene()
+                _LOGGER.debug(
+                    "Scene '%s' is the current scene (highest priority), "
+                    "setting '%s' as current.",
+                    scene_name,
+                    new_scene,
+                )
+
                 # Set the new highest priority scene
-                self._current_scene = self._get_highest_priority_scene()
+                self._current_scene = new_scene
+
                 # Call on scene change method
                 self._on_scene_change(self._current_scene)
 
-    def set_custom_active(self, state: set[Attr]) -> None:
-        """Set the custom scene to active with the given state values."""
+    def set_custom_active(self, state: dict[type[Attr], Attr]) -> None:
+        """Set the custom scene to active with the given state values.
+
+        This method should be called every time the entity changes externally,
+        """
         # Create custom scene
-        custom_attrs: set[AttrScene] = {AttrScene([attr]) for attr in state}
-        custom_scene = EntityScene(SCENE.CUSTOM, MAX_PRIORITY, custom_attrs)
+        custom_attr_scenes: set[AttrScene] = {
+            AttrScene([attr]) for _, attr in state.items()
+        }
+        custom_scene = EntityScene(SCENE.CUSTOM, MAX_PRIORITY, custom_attr_scenes)
         # Set the custom scene
         with self._scene_lock:
+            _LOGGER.debug("Custom scene attributes: %s", state)
+
             self._custom_scene = custom_scene
             self._current_scene = custom_scene
-            self._active_scenes.add(custom_scene)
+            self._active_scenes[custom_scene.name] = custom_scene
             # Dont call on_change as the change originated from hass aniways!
 
     def set_custom_inactive(self) -> None:
         """Set the custom scene to inactive."""
         with self._scene_lock:
             # Check if custom scene is active
-            if self._custom_scene in self._active_scenes:
+            if SCENE.CUSTOM in self._active_scenes:
                 # Remove custom scene
-                self._active_scenes.remove(self._custom_scene)
+                self._active_scenes.pop(SCENE.CUSTOM)
                 self._custom_scene = None
+
                 # Set the new highest priority scene
                 self._current_scene = self._get_highest_priority_scene()
+                _LOGGER.debug(
+                    "Setting highest priority scene to '%s' after deactivating custom scene.",
+                    self._current_scene.name,
+                )
+
                 # Call on scene change method
                 self._on_scene_change(self._current_scene)
+            else:
+                _LOGGER.debug("Custom scene is not active, nothing to deactivate.")
 
     # ===== Helpers =====
 
     def _get_highest_priority_scene(self) -> EntityScene:
         """Get the highest priority scene from the active scenes."""
         with self._scene_lock:
-            return max(self._active_scenes, key=lambda s: s.priority)
+            return max(
+                self._active_scenes.values(),
+                key=lambda scene: scene.priority,
+                default=self._off_scene,
+            )

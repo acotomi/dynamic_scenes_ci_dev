@@ -5,28 +5,65 @@ INTEGRATION_DOMAIN = "dynamic_scenes"
 # The maximum priority a scene can have (custom scene has this priority)
 MAX_PRIORITY = 100
 
-class SERVICE:
+
+# ===== Services =====
+class SERVICENAME:
     """The service names exposed by the integration."""
 
     SET_SCENE_CONDITION_MET = "set_scene_condition_met"
     UNSET_SCENE_CONDITION_MET = "unset_scene_condition_met"
-    RESET_CUSTOM_SCENE = "reset_custom_scene"
+    CONTINUE_ADJUSTMENTS = "continue_adjustments"
+    STOP_ADJUSTMENTS = "stop_adjustments"
     SET_TIMESHIFT = "set_timeshift"
-    SHIFT_TIME = "shift_time"
+    SHIFT_TIME = "shift_timeshift"
 
-class DATA:
-    """The data keys used in the integration storage."""
+
+class SERVICEDATA:
+    """The data keys used in the service calls TO dynamic scenes services."""
+
+    ENTITY_ID = "entity_id"
+    SCENE = "scene"
+    TIMESHIFT = "timeshift"
+    SHIFT = "shift"
+
+
+class YAMLDATA:
+    """The data keys used in the YAML configuration."""
 
     ENTITIES = "entities"
-    RERUN_INTERVAL = "rerun_interval"
-    UNLOAD_SERVICES = "unload_services"
-    UNLOAD_COORDINATOR = "unload_coordinator"
-    COMPONENTS = "components"
+    TIMES = "times"
+    PRIORITY = "priority"
 
-class PATH:
+    class ATTR:
+        """The attributes used in the YAML configuration."""
+
+        BRIGHTNESS = "brightness"
+        COLOR_TEMP = "color_temp"
+        XY_BRIGHTNESS = "xy_brightness"
+        XY_COLOR = "xy_color"
+        COLOR_MODE = "color_mode"
+        TRANSITION = "transition"
+        DELAY = "delay"
+
+
+class ENTRYDATA:
+    """The data keys used in the integration configuration."""
+
+    UPDATE_INTERVAL = "update_interval"
+
+class HASSDATA:
+    """The data keys used in the hass.data."""
+
+    UNREGISTER_SERVICES = "unregister_services"
+    UPDATE_COORDINATOR = "update_coordinator"
+    CONFIG = "config"
+
+
+class FILEPATH:
     """The paths to files used by the integration."""
 
     SCENES_FILE = "scenes.yaml"
+
 
 class SCENE:
     """Built-in scenes."""
@@ -34,10 +71,7 @@ class SCENE:
     OFF = "off"
     CUSTOM = "custom"
 
-DOMAIN = "dynamic_scenes"
+class SERVICECALLS:
+    """Reocuting constants used in outgoing service calls."""
 
-# TODO: Kaj so tej?
-# Service attributes
-ATTR_ENTITY_ID = "entity_id"
-ATTR_SCENE = "scene"
-ATTR_TIMESHIFT = "timeshift"
+    ENTITY_ID = "entity_id"
